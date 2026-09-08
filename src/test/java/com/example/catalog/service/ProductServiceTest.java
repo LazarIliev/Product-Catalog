@@ -1,12 +1,17 @@
-package com.example.catalog.product;
+package com.example.catalog.service;
 
-import com.example.catalog.product.dto.UpdateProductRequest;
+import com.example.catalog.model.product.Product;
+import com.example.catalog.repository.ProductRepository;
+import com.example.catalog.model.product.dto.UpdateProductRequest;
+import com.example.catalog.model.product.exception.ProductNotFoundException;
+import com.example.catalog.model.product.exception.StaleProductException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.OptimisticLockingFailureException;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -45,13 +50,12 @@ class ProductServiceTest {
                 .extracting("expectedVersion")
                 .isEqualTo(7L);
 
-        // The important half of the assertion: a conflict must not leave a partial write behind.
         verify(repository, never()).saveAndFlush(any());
     }
 
     @Test
-    @DisplayName("update without a version is last-write-wins")
-    void updateWithoutVersionProceeds() {
+    @DisplayName("update without a version skips the conflict check")
+    void updateWithoutVersionSkipsConflictCheck() {
         Product stored = productWithId(1L);
         when(repository.findById(1L)).thenReturn(Optional.of(stored));
         when(repository.saveAndFlush(stored)).thenReturn(stored);
@@ -68,6 +72,34 @@ class ProductServiceTest {
         // Scale is normalised to the column's, so the response matches a subsequent read.
         assertThat(updated.getPrice()).isEqualByComparingTo("199.00");
         assertThat(updated.getPrice().scale()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("two updates that read the same version, the second fails once the database detects the conflict")
+    void secondOfTwoConcurrentUpdatesFailsVersionCheck() {
+        Product stored = productWithId(1L);
+        when(repository.findById(1L)).thenReturn(Optional.of(stored));
+        // Both requests were built from the same read, so both carry the version that was current
+        // at that moment. The first commit succeeds; the second is what a genuine race would hit at
+        // flush time, once the row has already moved on underneath it.
+        when(repository.saveAndFlush(stored))
+                .thenReturn(stored)
+                .thenThrow(new OptimisticLockingFailureException("Row was updated by another transaction"));
+
+        UpdateProductRequest firstWriter = new UpdateProductRequest(
+                "Espresso Machine", new BigDecimal("229.99"), "kitchen", 3, 0L);
+        UpdateProductRequest secondWriter = new UpdateProductRequest(
+                "Espresso Machine", new BigDecimal("219.99"), "kitchen", 5, 0L);
+
+        Product afterFirstWriter = service.update(1L, firstWriter);
+        assertThat(afterFirstWriter).isNotNull();
+
+        // The second writer's manual check still passes — it read version 0, same as stored.getVersion().
+        // Only the database, at flush time, actually catches that it lost the race.
+        assertThatThrownBy(() -> service.update(1L, secondWriter))
+                .isInstanceOf(StaleProductException.class)
+                .extracting("expectedVersion")
+                .isEqualTo(0L);
     }
 
     @Test

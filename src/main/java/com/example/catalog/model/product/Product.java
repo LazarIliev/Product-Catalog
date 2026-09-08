@@ -1,4 +1,4 @@
-package com.example.catalog.product;
+package com.example.catalog.model.product;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -67,8 +67,6 @@ public class Product {
     /** Applies a full replacement of the mutable state. */
     public final void update(String name, BigDecimal price, String category, int quantity) {
         this.name = Objects.requireNonNull(name, "name").trim();
-        // NUMERIC(12,2) in the database; normalising here keeps the in-memory object identical to
-        // what a reload would return, so responses are stable whether or not the entity was flushed.
         this.price = Objects.requireNonNull(price, "price").setScale(2, RoundingMode.HALF_UP);
         this.category = Objects.requireNonNull(category, "category").trim();
         this.quantity = quantity;

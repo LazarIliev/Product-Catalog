@@ -1,8 +1,10 @@
-package com.example.catalog.product;
+package com.example.catalog.controller;
 
-import com.example.catalog.product.dto.CreateProductRequest;
-import com.example.catalog.product.dto.ProductResponse;
-import com.example.catalog.product.dto.UpdateProductRequest;
+import com.example.catalog.model.product.Product;
+import com.example.catalog.service.ProductService;
+import com.example.catalog.model.product.dto.CreateProductRequest;
+import com.example.catalog.model.product.dto.ProductResponse;
+import com.example.catalog.model.product.dto.UpdateProductRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

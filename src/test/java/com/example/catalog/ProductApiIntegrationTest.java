@@ -1,9 +1,9 @@
-package com.example.catalog.product;
+package com.example.catalog;
 
-import com.example.catalog.AbstractPostgresIntegrationTest;
-import com.example.catalog.product.dto.CreateProductRequest;
-import com.example.catalog.product.dto.ProductResponse;
-import com.example.catalog.product.dto.UpdateProductRequest;
+import com.example.catalog.repository.ProductRepository;
+import com.example.catalog.model.product.dto.CreateProductRequest;
+import com.example.catalog.model.product.dto.ProductResponse;
+import com.example.catalog.model.product.dto.UpdateProductRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

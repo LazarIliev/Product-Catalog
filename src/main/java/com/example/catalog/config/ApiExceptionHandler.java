@@ -1,8 +1,8 @@
-package com.example.catalog.web;
+package com.example.catalog.config;
 
-import com.example.catalog.product.DuplicateProductNameException;
-import com.example.catalog.product.ProductNotFoundException;
-import com.example.catalog.product.StaleProductException;
+import com.example.catalog.model.product.exception.DuplicateProductNameException;
+import com.example.catalog.model.product.exception.ProductNotFoundException;
+import com.example.catalog.model.product.exception.StaleProductException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;

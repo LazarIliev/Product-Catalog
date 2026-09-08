@@ -1,4 +1,4 @@
-package com.example.catalog.product;
+package com.example.catalog.model.product.exception;
 
 /**
  * Thrown when the client's view of a product is out of date — either because the version it sent

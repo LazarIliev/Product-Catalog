@@ -1,6 +1,9 @@
-package com.example.catalog.product;
+package com.example.catalog.controller;
 
-import com.example.catalog.product.dto.CreateProductRequest;
+import com.example.catalog.model.product.Product;
+import com.example.catalog.model.product.dto.CreateProductRequest;
+import com.example.catalog.model.product.exception.ProductNotFoundException;
+import com.example.catalog.service.ProductService;
 import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

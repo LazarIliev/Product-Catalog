@@ -21,14 +21,12 @@ CREATE TABLE products
     CONSTRAINT ck_products_category_not_blank    CHECK (length(btrim(category)) > 0),
     CONSTRAINT ck_products_price_positive        CHECK (price > 0),
     CONSTRAINT ck_products_quantity_non_negative CHECK (quantity >= 0)
+
 );
 
 -- Product names are unique case-insensitively. Enforced here rather than with a read-then-write
 -- check in the service, which would be a lost race under concurrency.
 CREATE UNIQUE INDEX ux_products_name_lower ON products (lower(name));
-
--- Filtering or grouping by category is the obvious next query against this table.
-CREATE INDEX ix_products_category ON products (category);
 
 COMMENT ON TABLE products IS 'Products offered in the catalog';
 COMMENT ON COLUMN products.version IS 'Optimistic locking version, incremented on every update';

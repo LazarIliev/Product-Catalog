@@ -1,4 +1,4 @@
-package com.example.catalog.product;
+package com.example.catalog.model.product.exception;
 
 /** Thrown when a product id does not exist. Mapped to 404 by the global exception handler. */
 public class ProductNotFoundException extends RuntimeException {

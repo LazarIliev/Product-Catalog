@@ -22,12 +22,16 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+  web:
+    error:
+      # Errors are rendered by ApiExceptionHandler; the servlet error page must not leak anything.
+      # These keys live under spring.web.error as of Boot 4.0 — the old server.error.* names are
+      # removed, not just deprecated, so setting them there would bind to nothing and leak by default.
+      include-message: never
+      include-stacktrace: never
+
 server:
   port: ${SERVER_PORT:8080}
-  error:
-    # Errors are rendered by ApiExceptionHandler; the servlet error page must not leak anything.
-    include-message: never
-    include-stacktrace: never
 
 springdoc:
   swagger-ui:

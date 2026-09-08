@@ -140,18 +140,29 @@ curl -sX POST http://localhost:8080/api/v1/products \
 
 ### Layering
 
+Classes are grouped **by layer**: each technical role gets its own top-level package, and the domain
+types for a feature live together under `model/`. A second feature adds a class to each of the layer
+packages plus a sibling package under `model/`. Application-wide infrastructure sits in `config/`.
+
 ```
-web/ApiExceptionHandler     exceptions -> HTTP problem details
-product/ProductController   HTTP: routing, status codes, headers
-product/ProductService      transactions and business rules
-product/ProductRepository   persistence (Spring Data JPA)
-product/Product             entity; owns its own invariants
-product/dto/*               request and response records
+config/ApiExceptionHandler       exceptions -> HTTP problem details
+config/OpenApiConfig             API documentation
+
+controller/ProductController     HTTP: routing, status codes, headers
+service/ProductService           transactions and business rules
+repository/ProductRepository     persistence (Spring Data JPA)
+model/product/Product            entity; owns its own invariants
+model/product/dto/*              request and response records
+model/product/exception/*        domain failures the web layer maps
 ```
 
 Three rules keep the layers honest: the controller holds no business logic, the service knows
 nothing about HTTP, and the entity is never exposed directly — DTO records are the API contract, so
 adding a column does not silently change the payload.
+
+Because the collaborators now sit in different packages, the controller, service and repository are
+**public**; the layering rules above are a review convention rather than something the compiler
+enforces. Nothing stops a future class from injecting `ProductRepository` and skipping the service.
 
 ### SQL schema
 
@@ -242,13 +253,21 @@ and web-slice tests run regardless.
 └── src
     ├── main
     │   ├── java/com/example/catalog
-    │   │   ├── config/OpenApiConfig.java
-    │   │   ├── product/          entity, repository, service, controller, DTOs, exceptions
-    │   │   └── web/ApiExceptionHandler.java
+    │   │   ├── ProductCatalogApplication.java
+    │   │   ├── config/           application-wide configuration (OpenAPI, error handling)
+    │   │   ├── controller/       HTTP endpoints
+    │   │   ├── service/          transactions and business rules
+    │   │   ├── repository/       Spring Data JPA repositories
+    │   │   └── model/product/    the catalog domain — entity
+    │   │       ├── dto/          request and response records
+    │   │       └── exception/    domain failures
     │   └── resources
     │       ├── application.yml
     │       └── db/migration/V1__create_products.sql
     └── test/java/com/example/catalog
         ├── AbstractPostgresIntegrationTest.java
-        └── product/              unit, web-slice, integration and schema tests
+        ├── ProductApiIntegrationTest.java   end-to-end, spans every layer
+        ├── controller/           web-slice tests
+        ├── service/              unit tests
+        └── repository/           schema tests against real SQL
 ```

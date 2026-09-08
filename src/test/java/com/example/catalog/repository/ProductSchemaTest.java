@@ -1,4 +1,4 @@
-package com.example.catalog.product;
+package com.example.catalog.repository;
 
 import com.example.catalog.AbstractPostgresIntegrationTest;
 import org.junit.jupiter.api.DisplayName;

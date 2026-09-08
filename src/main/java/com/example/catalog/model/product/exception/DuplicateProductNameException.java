@@ -1,4 +1,4 @@
-package com.example.catalog.product;
+package com.example.catalog.model.product.exception;
 
 /** Thrown when a product name collides with an existing one. Mapped to 409. */
 public class DuplicateProductNameException extends RuntimeException {

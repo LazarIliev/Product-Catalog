@@ -1,7 +1,14 @@
-package com.example.catalog.product;
+package com.example.catalog.service;
 
-import com.example.catalog.product.dto.CreateProductRequest;
-import com.example.catalog.product.dto.UpdateProductRequest;
+import com.example.catalog.model.product.Product;
+import com.example.catalog.repository.ProductRepository;
+import com.example.catalog.model.product.dto.CreateProductRequest;
+import com.example.catalog.model.product.dto.UpdateProductRequest;
+import com.example.catalog.model.product.exception.DuplicateProductNameException;
+import com.example.catalog.model.product.exception.ProductNotFoundException;
+import com.example.catalog.model.product.exception.StaleProductException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Sort;
@@ -18,6 +25,8 @@ import java.util.Locale;
 @Service
 public class ProductService {
 
+    private static final Logger log = LoggerFactory.getLogger(ProductService.class);
+
     /** Name of the unique index in V1__create_products.sql. */
     private static final String UNIQUE_NAME_INDEX = "ux_products_name_lower";
 
@@ -31,16 +40,21 @@ public class ProductService {
     public Product create(CreateProductRequest request) {
         Product product = new Product(
                 request.name(), request.price(), request.category(), request.quantity());
-        return persist(product, null);
+        Product created = persist(product, null);
+        log.info("Created product id={} name={}", created.getId(), created.getName());
+        return created;
     }
 
     @Transactional(readOnly = true)
     public List<Product> findAll() {
-        return repository.findAll(Sort.by(Sort.Direction.ASC, "id"));
+        List<Product> products = repository.findAll(Sort.by(Sort.Direction.ASC, "id"));
+        log.debug("Listed {} products", products.size());
+        return products;
     }
 
     @Transactional(readOnly = true)
     public Product findById(long id) {
+        log.debug("Looking up product id={}", id);
         return repository.findById(id).orElseThrow(() -> new ProductNotFoundException(id));
     }
 
@@ -48,15 +62,14 @@ public class ProductService {
     public Product update(long id, UpdateProductRequest request) {
         Product product = findById(id);
 
-        // Opt-in optimistic locking: reject early and with a precise message when the client tells
-        // us which version it edited. Hibernate's @Version still guards the flush itself, which is
-        // what catches two concurrent writers that both read the same version.
         if (request.version() != null && request.version() != product.getVersion()) {
             throw new StaleProductException(id, request.version(), null);
         }
 
         product.update(request.name(), request.price(), request.category(), request.quantity());
-        return persist(product, request.version());
+        Product updated = persist(product, request.version());
+        log.info("Updated product id={} version={}", updated.getId(), updated.getVersion());
+        return updated;
     }
 
     @Transactional
@@ -65,6 +78,7 @@ public class ProductService {
             throw new ProductNotFoundException(id);
         }
         repository.deleteById(id);
+        log.info("Deleted product id={}", id);
     }
 
     /**

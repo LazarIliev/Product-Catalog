@@ -1,4 +1,4 @@
-package com.example.catalog.product.dto;
+package com.example.catalog.model.product.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMin;
