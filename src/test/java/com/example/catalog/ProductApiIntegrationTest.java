@@ -144,6 +144,32 @@ class ProductApiIntegrationTest extends AbstractPostgresIntegrationTest {
     }
 
     @Test
+    @DisplayName("the list can be filtered by category, case-insensitively")
+    void listFiltersByCategory() {
+        long kettle = create("Kettle", "39.90", "kitchen", 4);
+        long grinder = create("Grinder", "89.00", "Kitchen", 2);
+        create("Desk Lamp", "24.50", "office", 7);
+
+        // "kitchen" and "Kitchen" are one category, matched through lower(category) — the expression
+        // ix_products_category_lower indexes.
+        assertThat(listByCategory("KITCHEN"))
+                .extracting(ProductResponse::id)
+                .containsExactly(kettle, grinder);
+
+        // Whitespace is normalised on both sides: the entity trims on write, the service on read.
+        assertThat(listByCategory("  office  "))
+                .extracting(ProductResponse::name)
+                .containsExactly("Desk Lamp");
+
+        // An unknown category is an empty list, not a 404 — the collection itself still exists.
+        assertThat(listByCategory("garden")).isEmpty();
+
+        // An empty parameter means "no filter", the same as omitting it.
+        assertThat(list(PRODUCTS + "?category=")).hasSize(3);
+        assertThat(list(PRODUCTS)).hasSize(3);
+    }
+
+    @Test
     @DisplayName("invalid input is rejected with 400 and never reaches the database")
     void invalidInputIsRejected() {
         ResponseEntity<String> response = rest.exchange(
@@ -159,6 +185,27 @@ class ProductApiIntegrationTest extends AbstractPostgresIntegrationTest {
                 .isNotNull()
                 .matches(type -> type.isCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
         assertThat(repository.count()).isZero();
+    }
+
+    /** Passes the category as a URI variable so the client, not the test, does the escaping. */
+    private List<ProductResponse> listByCategory(String category) {
+        ResponseEntity<List<ProductResponse>> response = rest.exchange(
+                PRODUCTS + "?category={category}",
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<List<ProductResponse>>() {},
+                category);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        return response.getBody();
+    }
+
+    private List<ProductResponse> list(String url) {
+        ResponseEntity<List<ProductResponse>> response = rest.exchange(
+                url, HttpMethod.GET, null, new ParameterizedTypeReference<>() {});
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        return response.getBody();
     }
 
     private long create(String name, String price, String category, int quantity) {

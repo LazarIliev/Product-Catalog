@@ -45,10 +45,28 @@ public class ProductService {
         return created;
     }
 
+    /**
+     * Lists the catalog, optionally narrowed to one category.
+     *
+     * <p>The category is matched case-insensitively and trimmed first, because the entity stores it
+     * trimmed and a caller who typed " Kitchen " means the same category as one who typed "kitchen".
+     * A {@code null} or blank category is treated as "no filter": an absent optional parameter and an
+     * empty one (<code>?category=</code>) are the same request, and neither should be answered with a
+     * silently empty list.
+     */
     @Transactional(readOnly = true)
-    public List<Product> findAll() {
-        List<Product> products = repository.findAll(Sort.by(Sort.Direction.ASC, "id"));
-        log.debug("Listed {} products", products.size());
+    public List<Product> findAll(String category) {
+        Sort byId = Sort.by(Sort.Direction.ASC, "id");
+
+        if (category == null || category.isBlank()) {
+            List<Product> products = repository.findAll(byId);
+            log.debug("Listed {} products", products.size());
+            return products;
+        }
+
+        String trimmed = category.trim();
+        List<Product> products = repository.findByCategoryIgnoreCase(trimmed, byId);
+        log.debug("Listed {} products in category={}", products.size(), trimmed);
         return products;
     }
 

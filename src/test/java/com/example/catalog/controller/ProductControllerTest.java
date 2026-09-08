@@ -17,10 +17,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -89,6 +91,22 @@ class ProductControllerTest {
         mockMvc.perform(post("/api/v1/products").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].field").value("price"));
+    }
+
+    @Test
+    @DisplayName("GET passes the optional category through, and null when it is absent")
+    void listPassesCategoryThrough() throws Exception {
+        given(service.findAll(any())).willReturn(List.of(productWithId(7L)));
+
+        mockMvc.perform(get("/api/v1/products").param("category", "kitchen"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1));
+        verify(service).findAll("kitchen");
+
+        mockMvc.perform(get("/api/v1/products"))
+                .andExpect(status().isOk());
+        // Absent means absent: the controller does not invent a default the service would filter on.
+        verify(service).findAll(null);
     }
 
     @Test

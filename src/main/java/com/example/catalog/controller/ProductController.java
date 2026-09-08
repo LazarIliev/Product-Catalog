@@ -6,6 +6,7 @@ import com.example.catalog.model.product.dto.CreateProductRequest;
 import com.example.catalog.model.product.dto.ProductResponse;
 import com.example.catalog.model.product.dto.UpdateProductRequest;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -53,10 +55,17 @@ public class ProductController {
         return ResponseEntity.created(location).body(ProductResponse.from(created));
     }
 
-    @Operation(summary = "List all products", description = "Ordered by id ascending")
+    @Operation(
+            summary = "List products",
+            description = "Ordered by id ascending. Optionally narrowed to a single category, which "
+                    + "is matched case-insensitively; omitting it (or leaving it empty) returns the "
+                    + "whole catalog.")
     @GetMapping
-    public List<ProductResponse> list() {
-        return service.findAll().stream().map(ProductResponse::from).toList();
+    public List<ProductResponse> list(
+            @Parameter(description = "Only return products in this category", example = "kitchen")
+            @RequestParam(required = false) String category) {
+
+        return service.findAll(category).stream().map(ProductResponse::from).toList();
     }
 
     @Operation(summary = "Get a single product")

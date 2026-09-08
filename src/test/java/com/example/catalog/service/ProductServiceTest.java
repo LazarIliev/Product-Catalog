@@ -12,13 +12,16 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -100,6 +103,34 @@ class ProductServiceTest {
                 .isInstanceOf(StaleProductException.class)
                 .extracting("expectedVersion")
                 .isEqualTo(0L);
+    }
+
+    @Test
+    @DisplayName("a category filter is trimmed and matched case-insensitively")
+    void categoryFilterIsTrimmedAndCaseInsensitive() {
+        Product stored = productWithId(1L);
+        // The entity stores category trimmed, so the filter has to be trimmed too or " Kitchen "
+        // would never match the row that " Kitchen " created.
+        when(repository.findByCategoryIgnoreCase(eq("Kitchen"), any(Sort.class)))
+                .thenReturn(List.of(stored));
+
+        assertThat(service.findAll("  Kitchen  ")).containsExactly(stored);
+
+        verify(repository, never()).findAll(any(Sort.class));
+    }
+
+    @Test
+    @DisplayName("an absent or empty category returns the whole catalog, not an empty list")
+    void blankCategoryIsNoFilter() {
+        Product stored = productWithId(1L);
+        when(repository.findAll(any(Sort.class))).thenReturn(List.of(stored));
+
+        // No product has a blank category, so filtering on one would answer `?category=` with an
+        // empty list — a confusing way to report what is really a missing parameter.
+        assertThat(service.findAll(null)).containsExactly(stored);
+        assertThat(service.findAll("   ")).containsExactly(stored);
+
+        verify(repository, never()).findByCategoryIgnoreCase(any(), any(Sort.class));
     }
 
     @Test
